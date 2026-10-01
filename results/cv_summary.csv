@@ -1,0 +1,9 @@
+,brier,brier,log_loss,log_loss,auc,auc,cal_intercept,cal_intercept,cal_slope,cal_slope
+,mean,std,mean,std,mean,std,mean,std,mean,std
+method,,,,,,,,,,
+Uncalibrated,0.1338,0.0215,0.4179,0.0494,0.8926,0.0414,-0.0147,0.1807,1.5595,0.663
+Temperature scaling,0.1325,0.0265,0.4093,0.0672,0.8926,0.0414,0.0379,0.2642,1.1501,0.507
+Platt (sigmoid),0.134,0.0274,0.416,0.0671,0.8926,0.0414,-0.0223,0.2671,1.1764,0.4493
+Logistic recalibration,0.1328,0.0266,0.4095,0.0676,0.8926,0.0414,-0.0232,0.273,1.1417,0.5015
+Beta calibration,0.133,0.0267,0.4127,0.0695,0.8926,0.0414,-0.0306,0.2704,1.1346,0.5108
+Isotonic regression,0.1375,0.0292,0.4855,0.1363,0.8884,0.0444,-0.029,0.312,0.9573,1.0803

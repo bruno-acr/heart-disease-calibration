@@ -1,0 +1,75 @@
+{
+  "selected_on_development": "Uncalibrated",
+  "test": {
+    "Uncalibrated": {
+      "brier": 0.1,
+      "log_loss": 0.3398,
+      "auc": 0.9502,
+      "cal_intercept": -0.235,
+      "cal_slope": 2.1414
+    },
+    "Temperature scaling": {
+      "brier": 0.0902,
+      "log_loss": 0.3017,
+      "auc": 0.9502,
+      "cal_intercept": -0.3113,
+      "cal_slope": 1.5265
+    },
+    "Platt (sigmoid)": {
+      "brier": 0.0895,
+      "log_loss": 0.3054,
+      "auc": 0.9502,
+      "cal_intercept": -0.3225,
+      "cal_slope": 1.5257
+    },
+    "Logistic recalibration": {
+      "brier": 0.0902,
+      "log_loss": 0.3018,
+      "auc": 0.9502,
+      "cal_intercept": -0.3111,
+      "cal_slope": 1.5271
+    },
+    "Beta calibration": {
+      "brier": 0.0895,
+      "log_loss": 0.3037,
+      "auc": 0.9502,
+      "cal_intercept": -0.3422,
+      "cal_slope": 1.4111
+    },
+    "Isotonic regression": {
+      "brier": 0.0961,
+      "log_loss": 0.3082,
+      "auc": 0.9524,
+      "cal_intercept": -0.4391,
+      "cal_slope": 1.033
+    }
+  },
+  "nested": {
+    "selection_counts": {
+      "Uncalibrated": 14,
+      "Temperature scaling": 1
+    },
+    "brier_uncalibrated_mean": 0.121,
+    "brier_procedure_mean": 0.121,
+    "brier_improved_in_folds": 1,
+    "n_outer_folds": 15,
+    "brier_mean_by_fixed_method": {
+      "Beta calibration": 0.1185,
+      "Isotonic regression": 0.1225,
+      "Logistic recalibration": 0.1186,
+      "Platt (sigmoid)": 0.1187,
+      "Temperature scaling": 0.1186,
+      "Uncalibrated": 0.121
+    },
+    "log_loss_mean_by_fixed_method": {
+      "Beta calibration": 0.3804,
+      "Isotonic regression": 0.4734,
+      "Logistic recalibration": 0.3768,
+      "Platt (sigmoid)": 0.3796,
+      "Temperature scaling": 0.3767,
+      "Uncalibrated": 0.3864
+    }
+  },
+  "classification_comparator": "Temperature scaling",
+  "runtime_seconds": 32.4
+}

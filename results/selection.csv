@@ -1,0 +1,7 @@
+method,mean,std,se,complexity,within_1se,best_mean,selected
+Uncalibrated,0.13378,0.02147,0.00429,0.0,True,False,True
+Temperature scaling,0.13247,0.02645,0.00529,1.0,True,True,False
+Platt (sigmoid),0.13403,0.02737,0.00547,2.0,True,False,False
+Logistic recalibration,0.1328,0.02657,0.00531,2.0,True,False,False
+Beta calibration,0.13296,0.02666,0.00533,3.0,True,False,False
+Isotonic regression,0.13748,0.02925,0.00585,inf,True,False,False

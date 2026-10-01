@@ -1,76 +1,110 @@
-# Calibração de probabilidades em um modelo de doença cardíaca
+# Does post-hoc calibration help? Six calibration maps under cross-validation
 
-Um modelo com AUC alta também produz probabilidades confiáveis? Este projeto treina uma **Random Forest** na base **Heart Disease (Cleveland) da UCI**, ajusta um **recalibrador sigmoide (Platt)** em um conjunto separado e compara, em um teste independente, o que muda nas probabilidades, na calibração, na discriminação e nas classificações.
+[![tests](https://github.com/bruno-acr/heart-disease-calibration/actions/workflows/tests.yml/badge.svg)](https://github.com/bruno-acr/heart-disease-calibration/actions/workflows/tests.yml)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+![License: MIT](https://img.shields.io/badge/license-MIT-green)
 
-![Curvas de calibração](figures/curvas_calibracao.png)
+A Random Forest trained on the **UCI Heart Disease (Cleveland)** data discriminates well (AUC ≈ 0.9), but are its probabilities trustworthy? This project compares **six post-hoc calibration maps** and asks whether any improvement **holds up under proper validation**. The maps are no calibration, temperature scaling, Platt (sigmoid), logistic recalibration, beta calibration and isotonic regression. Validation uses cross-fitting, repeated CV, a pre-specified selection rule and nested CV.
 
-## Destaques
+👉 **Full analysis:** [`notebooks/calibration_analysis.ipynb`](notebooks/calibration_analysis.ipynb)
 
-- Pipeline sem vazamento de dados: imputação e one-hot encoding aprendidos apenas no treinamento (`Pipeline` + `ColumnTransformer`).
-- Divisão em três papéis: **treinamento** (modelo), **calibração** (recalibrador via `CalibratedClassifierCV` + `FrozenEstimator`) e **teste** (avaliação).
-- Avaliação completa das probabilidades: Brier score (com cálculo manual), Brier skill score, log loss, curvas de calibração com IC de Wilson, intercepto de calibração média e inclinação de calibração.
-- Discriminação e classificação: AUC-ROC, average precision, curvas ROC e PR, matrizes de confusão, sensibilidade, especificidade, VPP, VPN, F1 e MCC.
-- Incerteza: bootstrap pareado para as diferenças de Brier e de acurácia.
-- Análise registro a registro das classificações que mudaram após a recalibração.
+![Reliability diagrams on the held-out test set](figures/reliability_test.png)
 
-## Resultados
+## Key findings
 
-Conjunto de teste: 61 registros, 28 eventos.
+| | Uncalibrated | Best parametric maps¹ | Isotonic |
+|---|---|---|---|
+| Calibration slope, development CV (target 1) | 1.56 | 1.13-1.18 | 0.96 (very unstable) |
+| Brier, development CV (5×5) | 0.1338 | 0.1325-0.1340 | 0.1375 |
+| Brier, single held-out test split | 0.100 | 0.090 | 0.096 |
+| **Brier, nested CV (15 outer folds)** | **0.1210** | **0.1185-0.1187** | 0.1225 |
+| Accuracy at threshold 0.50, test | 88.5% | 88.5% | — |
 
-| Medida | Original | Calibrado (sigmoide) |
-|---|---|---|
-| Brier | 0,110 | **0,098** |
-| Brier skill score | 0,557 | **0,606** |
-| Log loss | 0,367 | **0,330** |
-| AUC-ROC | 0,942 | 0,942 |
-| Intercepto de calibração média | −0,22 | −0,17 |
-| Inclinação de calibração | 2,11 | 1,58 |
-| Acurácia (limiar 0,50) | 88,5% | 90,2% |
+¹ Temperature scaling, Platt, logistic recalibration and beta calibration perform almost identically.
 
-- **As probabilidades melhoraram:** o Brier caiu 0,012 (IC 95% bootstrap pareado: −0,020 a −0,003).
-- **A discriminação não mudou:** a transformação é monotônica, então AUC e average precision são idênticas.
-- **A Random Forest original era moderada demais** (inclinação ≈ 2,1); a recalibração aproximou a inclinação de 1.
-- **Classificações:** só 3 registros atravessaram o limiar. O ganho de acurácia não é robusto: o IC 95% (−3,3 a +8,2 p.p.) inclui zero.
+1. **The forest is under-confident.** Its calibration slope is about 1.6: probabilities are pulled toward 0.5, as expected from averaging many trees.
+2. **One or two parameters are enough.** The parametric maps fix most of the slope. Isotonic regression overfits with ~190 training records and is the worst option on average.
+3. **A single test split overstated the benefit.** The held-out split showed a Brier gain of about 0.010, with a paired-bootstrap CI excluding zero. Nested CV puts the typical gain at about **0.0025**, four times smaller and within split-to-split noise.
+4. **A pre-specified one-standard-error rule** keeps the uncalibrated model in 14 of 15 outer folds: the evidence for recalibrating is too weak to justify extra parameters.
+5. **Better probabilities ≠ better classifications.** No test record crossed the 0.50 threshold, so accuracy, sensitivity and specificity are identical.
 
-Conclusão: melhorar a qualidade das probabilidades e melhorar os acertos de classificação são resultados distintos e devem ser avaliados separadamente.
-
-| Transformação aprendida | ROC e precisão-revocação |
+| Comparison across 25 CV splits | Nested CV: is the gain real? |
 |---|---|
-| ![Transformação](figures/transformacao_sigmoide.png) | ![ROC e PR](figures/roc_pr.png) |
+| ![CV comparison](figures/cv_comparison.png) | ![Nested CV](figures/nested_cv.png) |
 
-## Como executar
+## Methods
+
+```
+303 records
+├── Test set (20%, stratified) ─────────── evaluated once
+└── Development set (80%)
+    ├── 5×5 repeated stratified CV ─────── compare maps → one-SE rule selects one
+    │     └── per training fold: cross-fitting (internal 5-fold OOF predictions → fit maps,
+    │                            base model refitted on the whole fold)
+    └── final cross-fitted fit ─────────── predict the test set
+Nested CV (5×3 outer, 5×2 inner) repeats the whole procedure, selection included.
+```
+
+- **Leakage-safe pipeline:** imputation and one-hot encoding are fitted inside each training fold (`Pipeline` + `ColumnTransformer`). Hyperparameters are fixed a priori.
+- **Cross-fitting:** calibration maps are fitted on out-of-fold probabilities, never on in-sample ones, and no record is reserved only for calibration. This is equivalent to `CalibratedClassifierCV(ensemble=False)`, and a unit test checks that the isotonic and Platt maps reproduce scikit-learn exactly / to 1e-4.
+- **Metrics:** Brier score, Brier skill score, log loss, calibration intercept (calibration-in-the-large), calibration slope, AUC, average precision, reliability diagrams with Wilson intervals, and classification metrics at a fixed threshold.
+- **Uncertainty:** paired comparisons on identical CV splits, a paired bootstrap on the test set, and nested CV for the whole procedure.
+
+| Map | Params | Form |
+|---|---|---|
+| Temperature scaling | 1 | logit p' = logit(p) / T |
+| Platt (sigmoid) | 2 | logit p' = a·p + b |
+| Logistic recalibration | 2 | logit p' = a + b·logit(p) |
+| Beta calibration | 3 | logit p' = c + a·ln p − b·ln(1 − p) |
+| Isotonic regression | many | monotone step function |
+
+## Repository layout
+
+```
+├── notebooks/calibration_analysis.ipynb   # the analysis, executed, with narrative
+├── src/heartcal/
+│   ├── data.py          # loading + SHA-256 check + outcome definition
+│   ├── modeling.py      # preprocessing + Random Forest pipeline
+│   ├── calibrators.py   # the six calibration maps (common fit/predict interface)
+│   ├── metrics.py       # Brier, log loss, calibration intercept/slope, bootstrap, ...
+│   ├── experiment.py    # cross-fitting, repeated CV, one-SE selection, nested CV
+│   └── plotting.py      # figures
+├── scripts/run_experiment.py   # reproduces every table in results/ and figure in figures/
+├── tests/               # 21 unit tests (pytest), run on GitHub Actions
+├── data/                # original UCI file + provenance
+├── results/             # CSV/JSON outputs
+└── figures/
+```
+
+## Reproduce
 
 ```bash
 git clone https://github.com/bruno-acr/heart-disease-calibration.git
 cd heart-disease-calibration
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-jupyter notebook calibracao_heart_disease.ipynb
+
+pytest -q                              # 21 tests, ~2 s
+python scripts/run_experiment.py       # all results and figures, ~30 s on 10 cores
+jupyter lab notebooks/calibration_analysis.ipynb
 ```
 
-O notebook já está salvo com os resultados executados (Python 3.14, scikit-learn 1.7.2). Em outras versões, pode haver pequenas variações nos números.
+Results were produced with Python 3.14 and scikit-learn 1.7.2; other versions may differ slightly.
 
-## Estrutura
+## Limitations
 
-```
-.
-├── calibracao_heart_disease.ipynb   # análise completa
-├── data/processed.cleveland.data    # arquivo original da UCI (verificado por SHA-256)
-├── figures/                         # figuras usadas neste README
-└── requirements.txt
-```
+Small sample (303 records, 139 events), one fixed base model, and retrospective single-centre diagnostic data without external validation. This is a methodological study with no clinical validity. The standard error in the one-SE rule ignores the correlation between repeated-CV folds.
 
-## Limitações
+## References
 
-Amostra pequena (303 registros), uma única divisão treino/calibração/teste e cenário diagnóstico retrospectivo sem validação externa. O projeto é um estudo metodológico e não tem validade clínica.
-
-## Dados e referências
-
-- Janosi A, Steinbrunn W, Pfisterer M, Detrano R. *Heart Disease* [Dataset]. UCI Machine Learning Repository, 1989. https://doi.org/10.24432/C52P4X. Licença CC BY 4.0.
+- Janosi A, Steinbrunn W, Pfisterer M, Detrano R. *Heart Disease* [Dataset]. UCI ML Repository, 1989. https://doi.org/10.24432/C52P4X (CC BY 4.0)
+- Platt J. Probabilistic outputs for support vector machines. *Advances in Large Margin Classifiers*, 1999.
+- Zadrozny B, Elkan C. Transforming classifier scores into accurate multiclass probability estimates. *KDD*, 2002.
+- Guo C et al. On calibration of modern neural networks. *ICML*, 2017.
+- Kull M, Silva Filho T, Flach P. Beta calibration. *AISTATS*, 2017.
 - Van Calster B et al. Calibration: the Achilles heel of predictive analytics. *BMC Medicine*, 2019. https://doi.org/10.1186/s12916-019-1466-7
 - Huang Y et al. A tutorial on calibration measurements and calibration models for clinical prediction models. *JAMIA*, 2020. https://doi.org/10.1093/jamia/ocz228
-- [scikit-learn: Probability calibration](https://scikit-learn.org/stable/modules/calibration.html)
 
-## Licença
+## License
 
-Código sob licença MIT. Os dados da UCI seguem a licença CC BY 4.0.
+Code: MIT. Data: CC BY 4.0 (UCI).

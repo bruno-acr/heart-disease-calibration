@@ -1,0 +1,11 @@
+method,metric,difference,ci_low,ci_high
+Temperature scaling,brier,-0.0097,-0.0167,-0.0015
+Temperature scaling,log_loss,-0.038,-0.0602,-0.008
+Platt (sigmoid),brier,-0.0104,-0.0196,0.0002
+Platt (sigmoid),log_loss,-0.0344,-0.0609,-0.0022
+Logistic recalibration,brier,-0.0097,-0.0167,-0.0015
+Logistic recalibration,log_loss,-0.038,-0.0602,-0.008
+Beta calibration,brier,-0.0104,-0.0186,-0.0002
+Beta calibration,log_loss,-0.0361,-0.0653,0.0063
+Isotonic regression,brier,-0.0039,-0.0242,0.018
+Isotonic regression,log_loss,-0.0316,-0.0897,0.0441

@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "heartcal"
+version = "1.0.0"
+description = "Comparing post-hoc calibration methods with cross-validation on the UCI Heart Disease dataset"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Bruno Ramalho" }]
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.26",
+    "pandas>=2.1",
+    "scipy>=1.11",
+    "scikit-learn>=1.6,<2",
+    "matplotlib>=3.10",
+    "joblib>=1.3",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "jupyter", "nbconvert"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
